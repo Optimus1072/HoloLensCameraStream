@@ -64,7 +64,7 @@ PluginImporter:
       enabled: 1
       settings:
         CPU: AnyCPU
-        DontProcess: False
+        DontProcess: True
         PlaceholderPath: Assets/CamStream/Plugins/HoloLensCameraStream.dll
         SDK: UWP
         ScriptingBackend: DotNet

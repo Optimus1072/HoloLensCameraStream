@@ -100,7 +100,8 @@ namespace HoloLensCameraStream
             }
         }
 
-        static MediaStreamType streamType = MediaStreamType.VideoPreview;
+        static readonly MediaStreamType STREAM_TYPE = MediaStreamType.VideoPreview;
+        static readonly Guid ROTATION_KEY = new Guid("C380465D-2271-428C-9B83-ECEA3B4A85C1");
 
         MediaFrameSourceGroup _frameSourceGroup;
         MediaFrameSourceInfo _frameSourceInfo;
@@ -123,7 +124,7 @@ namespace HoloLensCameraStream
         public static async void CreateAync(OnVideoCaptureResourceCreatedCallback onCreatedCallback)
         {
             var allFrameSourceGroups = await MediaFrameSourceGroup.FindAllAsync();                                              //Returns IReadOnlyList<MediaFrameSourceGroup>
-            var candidateFrameSourceGroups = allFrameSourceGroups.Where(group => group.SourceInfos.Any(IsColorVideoPreview));   //Returns IEnumerable<MediaFrameSourceGroup>
+            var candidateFrameSourceGroups = allFrameSourceGroups.Where(group => group.SourceInfos.Any(IsColorVideo));   //Returns IEnumerable<MediaFrameSourceGroup>
             var selectedFrameSourceGroup = candidateFrameSourceGroups.FirstOrDefault();                                         //Returns a single MediaFrameSourceGroup
             
             if (selectedFrameSourceGroup == null)
@@ -158,7 +159,7 @@ namespace HoloLensCameraStream
         {
             List<Resolution> resolutions = new List<Resolution>();
 
-            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(streamType).Select(x => x as VideoEncodingProperties); //Returns IEnumerable<VideoEncodingProperties>
+            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(STREAM_TYPE).Select(x => x as VideoEncodingProperties); //Returns IEnumerable<VideoEncodingProperties>
             foreach (var propertySet in allPropertySets)
             {
                 resolutions.Add(new Resolution((int)propertySet.Width, (int)propertySet.Height));
@@ -170,7 +171,7 @@ namespace HoloLensCameraStream
         public IEnumerable<float> GetSupportedFrameRatesForResolution(Resolution resolution)
         {
             //Get all property sets that match the supported resolution
-            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(streamType).Select((x) => x as VideoEncodingProperties)
+            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(STREAM_TYPE).Select((x) => x as VideoEncodingProperties)
                 .Where((x) =>
             {
                 return x != null &&
@@ -225,9 +226,9 @@ namespace HoloLensCameraStream
             _frameReader.FrameArrived += HandleFrameArrived;
             await _frameReader.StartAsync();
             VideoEncodingProperties properties = GetVideoEncodingPropertiesForCameraParams(setupParams);
-
-            //TODO: Cannot set the encoding properties yet. This is producing an error which I haven't solved.
-            //await _mediaCapture.SetEncodingPropertiesAsync(streamType, properties, null);
+            
+            properties.Properties.Add(ROTATION_KEY, 180);
+            await _mediaCapture.VideoDeviceController.SetMediaStreamPropertiesAsync(STREAM_TYPE, properties);
 
             onVideoModeStartedCallback?.Invoke(new VideoCaptureResult(0, ResultType.Success, true));
         }
@@ -347,7 +348,7 @@ namespace HoloLensCameraStream
 
         VideoEncodingProperties GetVideoEncodingPropertiesForCameraParams(CameraParameters cameraParams)
         {
-            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(streamType).Select((x) => x as VideoEncodingProperties)
+            var allPropertySets = _mediaCapture.VideoDeviceController.GetAvailableMediaStreamProperties(STREAM_TYPE).Select((x) => x as VideoEncodingProperties)
                 .Where((x) =>
             {
                 if (x == null) return false;
@@ -370,10 +371,10 @@ namespace HoloLensCameraStream
             return chosenPropertySet;
         }
 
-        static bool IsColorVideoPreview(MediaFrameSourceInfo sourceInfo)
+        static bool IsColorVideo(MediaFrameSourceInfo sourceInfo)
         {
             //TODO: Determine whether 'VideoPreview' or 'VideoRecord' is the appropriate type. What's the difference?
-            return (sourceInfo.MediaStreamType == streamType &&
+            return (sourceInfo.MediaStreamType == STREAM_TYPE &&
                 sourceInfo.SourceKind == MediaFrameSourceKind.Color);
         }
 

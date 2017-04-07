@@ -6,4 +6,4 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/CamStream/Examples/Example1/Example 1.unity
+    path: Assets/CamStream/Examples/Video Panel Example/Video Panel Example.unity
